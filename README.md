@@ -15,10 +15,12 @@ Claude Code skills for debugging and deploying MVTS (Multi-Vehicle Task Schedule
 # 1. Clone the repo
 git clone git@github.com:greyorange/mvts-claude-skills.git ~/Projects/GreyOrange/mvts-claude-skills
 
-# 2. Symlink the skills into Claude's commands directory
+# 2. Symlink all skills into Claude's commands directory
 mkdir -p ~/.claude/commands
-ln -sf ~/Projects/GreyOrange/mvts-claude-skills/mvts-debug.md ~/.claude/commands/mvts-debug.md
-ln -sf ~/Projects/GreyOrange/mvts-claude-skills/mvts-build.md ~/.claude/commands/mvts-build.md
+for f in ~/Projects/GreyOrange/mvts-claude-skills/*.md; do
+  [[ "$(basename "$f")" == "README.md" ]] && continue
+  ln -sf "$f" ~/.claude/commands/"$(basename "$f")"
+done
 ```
 
 > **Why symlinks?** Claude Code loads every `.md` file in `~/.claude/commands/` as a skill. Keeping the repo separate (with the README and other non-skill files) prevents them from being loaded as skills.
