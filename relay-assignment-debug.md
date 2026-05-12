@@ -159,7 +159,11 @@ promoted_on_relay_count = 0?
 └── incoming_tasks > 0
     ├── All totes at_relay=1, available=true → MVTS promotion bug. Escalate.
     └── Totes NOT at relay
-        ├── invalid_aisle → GMC aisle data stale. Wait or escalate GMC.
+        ├── Check order_details for these totes first:
+        │   ├── is_promoted=true + location=CONVEYOR → Tote mid-pick-cycle on conveyor.
+        │   │   on_unknown_bot flag is also expected. Normal — wait for conveyor to finish.
+        │   └── is_promoted=false → Tote genuinely blocked, continue below.
+        ├── invalid_aisle (not CONVEYOR) → GMC aisle data stale. Wait or escalate GMC.
         ├── No VTM assignment → MVTS not planning. Check not_received/inconsistent flags.
         └── VTM assigned
             ├── task repeating without * for >5 min → GMC not executing. Escalate GMC.
@@ -175,3 +179,4 @@ promoted_on_relay_count = 0?
 | Transient invalid_aisle | Tote aisle unknown for a few cycles, then clears | Self-resolves when GMC syncs location |
 | VTM relay→store stuck 10–15 min | Same relay→store chain repeats, no `*`, tote stays `unavailable` | GMC task execution delay; self-resolves or requires GMC team intervention |
 | No VTM assignments at all | `mvts_relay_vtm_bot_assignment_details` empty for >5 min while tasks pending | Check if relay is enabled: `ENABLE_RELAY=true` in config |
+| Tote on CONVEYOR (false alarm) | Tote appears in `invalid_aisle` / `unavailable` / `on_unknown_bot` but order_details shows `is_promoted=true` with `location=CONVEYOR` | Tote is mid-pick-cycle on the conveyor belt — not a real blockage. Normal queuing for subsequent orders needing the same tote. No action needed; wait for conveyor cycle to complete. |
