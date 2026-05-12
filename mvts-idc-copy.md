@@ -42,11 +42,29 @@ mcp__gor-global-mcp__list_environments(query="<env_alias>")
 
 ---
 
-## Step 2 — List available IDC files
+## Step 2 — Check mvts-0 pod is running
+
+**Before doing anything else**, verify the pod is up. If it isn't, abort immediately and tell the user.
 
 ```bash
-# List all files, then exclude direction_aware variants
-kubectl exec mvts-0 -n <namespace> -- ls /app/data/idc
+ssh JumpServer "kubectl get pod mvts-0 -n <namespace> --no-headers 2>&1"
+```
+
+- If the output shows `Running` → proceed to Step 3.
+- If the pod is missing, in `CrashLoopBackOff`, `Pending`, `Terminating`, or the statefulset
+  shows `0/0` replicas → **stop here** and notify the user:
+
+  > "mvts-0 is not running in `<namespace>` (status: `<status>`). Cannot copy IDC files.
+  > Please start/scale up the MVTS pod and try again, or confirm you want to use a different environment."
+
+  Do NOT attempt kubectl cp on a pod that isn't in Running state.
+
+---
+
+## Step 3 — List available IDC files
+
+```bash
+ssh JumpServer "kubectl exec mvts-0 -n <namespace> -- ls /app/data/idc"
 ```
 
 Filter the output: **remove any filename containing `direction_aware`**.
@@ -55,38 +73,39 @@ Display the remaining files to the user and ask which one they need (they are na
 Example output after filtering:
 ```
 map.json
-idc_v3.bin
-idc_v4.bin
+distance_heuristic_liftdown_floor_1_ranger_version_HTM_HAI_K50_L_E1
+distance_heuristic_liftup_floor_1_ranger_version_VTM_HAI_A42_TDV_E1
 ```
 
 ---
 
-## Step 3 — Copy files from pod to jump server
+## Step 4 — Copy files from pod to jump server home directory
 
-Copy **both** `map.json` and the user-selected IDC file from the pod to `/tmp/` on the jump server.
-Use `kubectl cp`. If it fails (common for large files), retry indefinitely.
+Copy **both** `map.json` and the user-selected IDC file from the pod to `~/` (home directory)
+on the jump server. Users generally don't have write access to `/tmp` on the jump server.
+Use `kubectl cp` with infinite retries (large files fail often).
 
 ```bash
 # Copy map.json (always required)
-while ! ssh JumpServer "kubectl cp <namespace>/mvts-0:/app/data/idc/map.json /tmp/map.json"; do
+while ! ssh JumpServer "kubectl cp <namespace>/mvts-0:/app/data/idc/map.json ~/map.json"; do
   echo "Retrying map.json copy..."; sleep 3
 done
 
 # Copy the selected IDC file
 IDC_FILE="<selected_filename>"
-while ! ssh JumpServer "kubectl cp <namespace>/mvts-0:/app/data/idc/${IDC_FILE} /tmp/${IDC_FILE}"; do
+while ! ssh JumpServer "kubectl cp <namespace>/mvts-0:/app/data/idc/${IDC_FILE} ~/${IDC_FILE}"; do
   echo "Retrying ${IDC_FILE} copy..."; sleep 3
 done
 ```
 
 Confirm both files landed on the jump server:
 ```bash
-ssh JumpServer "ls -lh /tmp/map.json /tmp/${IDC_FILE}"
+ssh JumpServer "ls -lh ~/map.json ~/${IDC_FILE}"
 ```
 
 ---
 
-## Step 4 — Transfer from jump server to local machine
+## Step 5 — Transfer from jump server to local machine
 
 Ask the user where they want the files on their local machine (e.g. a specific project directory
 or a default like `~/idc-files/`). Then scp both files:
@@ -95,8 +114,8 @@ or a default like `~/idc-files/`). Then scp both files:
 LOCAL_DIR="<user_specified_local_dir>"
 mkdir -p "${LOCAL_DIR}"
 
-scp JumpServer:/tmp/map.json "${LOCAL_DIR}/map.json"
-scp JumpServer:/tmp/${IDC_FILE} "${LOCAL_DIR}/${IDC_FILE}"
+scp JumpServer:~/map.json "${LOCAL_DIR}/map.json"
+scp "JumpServer:~/${IDC_FILE}" "${LOCAL_DIR}/${IDC_FILE}"
 ```
 
 Confirm success:
@@ -109,8 +128,8 @@ ls -lh "${LOCAL_DIR}"
 ## Notes
 
 - `kubectl cp` can silently truncate large files — always verify file size matches between pod
-  and jump server: `kubectl exec mvts-0 -n <ns> -- ls -lh /app/data/idc/<file>` vs
-  `ssh JumpServer "ls -lh /tmp/<file>"`
+  and jump server: `ssh JumpServer "kubectl exec mvts-0 -n <ns> -- ls -lh /app/data/idc/<file>"` vs
+  `ssh JumpServer "ls -lh ~/<file>"`
 - If the environment's jump server isn't `JumpServer`, resolve it via the environment info or
   ask the user which jump server to use
 - MVTS only reads the non-direction-aware IDC file; direction-aware files are an intermediate
