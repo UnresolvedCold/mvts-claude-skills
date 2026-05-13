@@ -205,6 +205,7 @@ If yes → HTM can pick it now. If no → needs VTM first.
 | Single bot stuck `processing` same totes for >30 min | GMC not completing the VTM store/pick task — tote may be physically stuck or task state corrupted | GMC team |
 | `aislesWithTasks=[]`, 0 store-to-relay tasks in PS | GMC not generating VTM tasks at all — no items at relay IO points or VTM task generation paused | GMC team |
 | `VTM_TASK_ASSIGNMENT_THRESHOLD` too high | Aisles with fewer tasks than threshold are skipped even when work exists | Config change |
+| `ENABLE_STATIC_BOT_AISLE_MAP=true` with fewer bots than aisles | Static strategy requires `#VTM bots == #aisles` to work correctly. If bots < aisles, some aisles are never visited in a given cycle. Fix: set `ENABLE_STATIC_BOT_AISLE_MAP=false` to fall back to dynamic selection. Diagnose: compare `jq "[.relay_point_list[].aisle_info.aisle_id] | unique | length"` vs `jq "[.ranger_list[] | select(.version | startswith(\"VTM\"))] | length"` on the PS — if aisles > bots, this is the cause. **Note:** an MVTS restart may appear to fix this temporarily — on restart the static map is re-initialized and bots get a new aisle rotation, so the previously-skipped aisle may get coverage. This is not a real fix; the same aisles will go uncovered again in subsequent cycles. | Config change |
 
 ---
 
