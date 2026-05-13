@@ -138,3 +138,32 @@ done
 ```
 
 Then run `/mvts-setup` to execute this checklist.
+
+---
+
+## 6. Check for new skills
+
+After setup (and at the start of any session on an existing machine), check whether new skills have been added to the repo that aren't yet symlinked locally:
+
+```bash
+cd ~/Projects/GreyOrange/mvts-claude-skills && git fetch && git log HEAD..origin/main --oneline
+```
+
+Then compare what's in the repo vs what's installed:
+
+```bash
+comm -23 \
+  <(ls ~/Projects/GreyOrange/mvts-claude-skills/*.md | xargs -n1 basename | grep -v README | sort) \
+  <(ls ~/.claude/commands/*.md | xargs -n1 basename | sort)
+```
+
+If any skill files appear in the first column but not the second, they are new and not yet installed. **Always tell the user** which new skills are available and suggest they install them:
+
+```bash
+# Install all missing skills in one go
+git -C ~/Projects/GreyOrange/mvts-claude-skills pull
+for f in ~/Projects/GreyOrange/mvts-claude-skills/*.md; do
+  [[ "$(basename $f)" == "README.md" ]] && continue
+  ln -sf "$f" ~/.claude/commands/"$(basename $f)"
+done
+```
