@@ -46,6 +46,7 @@ Then route to the appropriate system index.
 /mvts/dev/idc-validate      ← [eng] Validate IDC congestion multiplier
 /mvts/dev/build             ← [eng] Build and deploy MVTS
 /mvts/dev/operator-time-audit ← [eng] Audit operator time inflation
+/mvts/dev/correlation-analysis ← [eng] Correlation matrix across InfluxDB metrics
 ```
 
 Skills marked `[eng]` are for engineers only. Operations users should describe the problem in plain English to `/mvts/index` instead.

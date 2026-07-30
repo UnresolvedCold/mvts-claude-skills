@@ -114,6 +114,8 @@ ssh JumpServer "kubectl get pod mvts-0 -n <namespace>"
 | Predicted vs real timing analysis, navigation leg analysis | `/mvts/dev/influxdb` |
 | `serviced_orders` / operator_time inflating or deflating | `/mvts/dev/operator-time-audit` |
 | IDC multiplier wrong / over-estimating transit times | `/mvts/dev/idc-validate` |
+| Multi vs single promotion ratio, MSIO dominating, multi-tote throughput analysis | `/mvts/dev/multi-single-analysis` |
+| Is there a relationship/correlation between two or more metrics, bottleneck root-causing across metrics | `/mvts/dev/correlation-analysis` |
 
 ---
 
